@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: stg_tmdb_api_responses
+    description: Cleaned and deduplicated raw TMDB API responses.
+    columns:
+      - name: raw_response_id
+        data_tests:
+          - not_null
+      - name: endpoint_name
+        data_tests:
+          - not_null
+      - name: response_json
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_movies
+    description: Movie detail fields parsed from movie_detail API responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_genres
+    description: TMDB movie genre reference data.
+    columns:
+      - name: genre_id
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_movie_genres
+    description: Bridge rows between movies and genres parsed from movie detail responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: genre_id
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_movie_cast
+    description: Movie cast rows parsed from movie credits responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_trending_movies
+    description: Movies from TMDB trending day/week responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: time_window
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_popular_movies
+    description: Movies from TMDB popular list responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_discover_movies
+    description: Movies from TMDB discover backfill responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null

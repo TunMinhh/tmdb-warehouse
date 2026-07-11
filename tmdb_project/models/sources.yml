@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: tmdb_raw
+    database: TMDB_DWH
+    schema: RAW
+    tables:
+      - name: raw_tmdb_api_responses
+        identifier: RAW_TMDB_API_RESPONSES
