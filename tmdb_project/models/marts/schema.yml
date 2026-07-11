@@ -1,0 +1,70 @@
+version: 2
+
+models:
+  - name: dim_movies
+    description: One row per movie with descriptive movie attributes.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+          - unique
+
+  - name: dim_genres
+    description: One row per TMDB movie genre.
+    columns:
+      - name: genre_id
+        data_tests:
+          - not_null
+          - unique
+
+  - name: dim_people
+    description: One row per actor/person found in movie credits.
+    columns:
+      - name: person_id
+        data_tests:
+          - not_null
+          - unique
+
+  - name: bridge_movie_genres
+    description: Many-to-many bridge between movies and genres.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: genre_id
+        data_tests:
+          - not_null
+
+  - name: bridge_movie_cast
+    description: Many-to-many bridge between movies and cast members.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+      - name: credit_id
+        data_tests:
+          - not_null
+
+  - name: fact_movie_performance
+    description: One row per movie with performance metrics such as revenue, ROI, rating, and popularity.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+          - unique
+
+  - name: fact_movie_popularity_snapshot
+    description: Movie ranking snapshots from popular and trending endpoints.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: business_date
+        data_tests:
+          - not_null
+      - name: source_list
+        data_tests:
+          - not_null

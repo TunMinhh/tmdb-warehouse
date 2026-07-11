@@ -20,7 +20,7 @@ select
     cast_member.value:character::string as character_name,
     cast_member.value:order::number as cast_order, --I think this is used for importance level
     cast_member.value:popularity::float as actor_popularity,
-    cast_member.value:gender::number as gender, --1 for women 2 for men
+    cast_member.value:gender::number as gender_code, --1 for women 2 for men
     business_date,
     extracted_at,
     raw_response_id
