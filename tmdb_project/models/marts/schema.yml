@@ -56,8 +56,8 @@ models:
           - not_null
           - unique
 
-  - name: fact_movie_popularity_snapshot
-    description: Movie ranking snapshots from popular and trending endpoints.
+  - name: fact_movie_popular_snapshot
+    description: Movie ranking snapshots from the TMDB popular endpoint.
     columns:
       - name: movie_id
         data_tests:
@@ -65,6 +65,22 @@ models:
       - name: business_date
         data_tests:
           - not_null
-      - name: source_list
+      - name: overall_rank
+        data_tests:
+          - not_null
+
+  - name: fact_movie_trending_snapshot
+    description: Movie ranking snapshots from the TMDB trending day/week endpoints.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: business_date
+        data_tests:
+          - not_null
+      - name: time_window
+        data_tests:
+          - not_null
+      - name: trending_rank
         data_tests:
           - not_null

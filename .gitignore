@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 data/raw/
 DOCS.md
+logs/
+plugins/
+tmdb_project/target/
+tmdb_project/dbt_packages/
+postgres-db-volume/

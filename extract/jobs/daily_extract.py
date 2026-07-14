@@ -4,7 +4,6 @@ from datetime import date
 
 from extract.configs import settings
 from extract.extract_movies import (
-    extract_genres,
     extract_movie_credits,
     extract_movie_details,
     extract_movie_list,
@@ -29,10 +28,8 @@ def run_daily_extract(
     client = TMDBClient()
     movie_ids = set()
 
-    # Open one Snowflake connection for this run, then reuse it for all inserts.
+    # One connection per job keeps Snowflake inserts cheaper and easier to track.
     with get_connection(include_schema=False) as conn:
-        genre_count = extract_genres(client, conn, business_date)
-
         trending_day_count, trending_day_ids = extract_trending_movies(client, conn, business_date, "day")
         movie_ids.update(trending_day_ids)
 
@@ -49,7 +46,7 @@ def run_daily_extract(
         )
         movie_ids.update(popular_ids)
 
-        # Details and credits are optional because they can create many API calls.
+        # Fan-out calls enrich the movie IDs found in popular/trending lists.
         detail_count = extract_movie_details(client, conn, business_date, movie_ids) if include_details else 0
         credit_count = extract_movie_credits(client, conn, business_date, movie_ids) if include_credits else 0
 
@@ -58,7 +55,6 @@ def run_daily_extract(
         "snowflake_table": f"{settings.snowflake_database}.{settings.snowflake_schema}.{settings.snowflake_raw_table}",
         "unique_movie_count": len(movie_ids),
         "raw_rows_inserted": {
-            "genre_movie_list": genre_count,
             "trending_movie_day": trending_day_count,
             "trending_movie_week": trending_week_count,
             "movie_popular": popular_count,
@@ -69,7 +65,7 @@ def run_daily_extract(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract TMDB API data into Snowflake raw table.")
+    parser = argparse.ArgumentParser(description="Extract daily TMDB popular/trending data into Snowflake.")
     parser.add_argument("--business-date", default=date.today().isoformat())
     parser.add_argument("--popular-pages", type=int, default=10)
     parser.add_argument("--skip-details", action="store_true")

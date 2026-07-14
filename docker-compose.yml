@@ -1,0 +1,77 @@
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: docker/airflow/Dockerfile
+  env_file:
+    - .env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}@postgres/airflow"
+    AIRFLOW__WEBSERVER__SECRET_KEY: "${AIRFLOW_WEBSERVER_SECRET_KEY:?Set AIRFLOW_WEBSERVER_SECRET_KEY in .env}"
+    DBT_PROFILES_DIR: /opt/airflow/project/tmdb_project/profiles
+    PYTHONPATH: /opt/airflow/project
+  volumes:
+    - ./:/opt/airflow/project
+    - ./dags:/opt/airflow/dags
+    - ./logs/airflow:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: "${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}"
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    command:
+      - bash
+      - -c
+      - |
+        test -n "$${AIRFLOW_ADMIN_PASSWORD}" || (echo "Missing AIRFLOW_ADMIN_PASSWORD" && exit 1)
+        mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins
+        airflow db migrate
+        airflow users create \
+          --username "$${AIRFLOW_ADMIN_USERNAME:-admin}" \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email "$${AIRFLOW_ADMIN_EMAIL:-admin@example.com}" \
+          --password "$${AIRFLOW_ADMIN_PASSWORD}" || true
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: unless-stopped
+
+volumes:
+  postgres-db-volume:

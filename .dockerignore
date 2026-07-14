@@ -1,0 +1,8 @@
+.git
+.venv
+.env
+logs
+**/__pycache__
+**/*.pyc
+tmdb_project/target
+tmdb_project/dbt_packages
