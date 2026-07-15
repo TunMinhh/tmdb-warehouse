@@ -24,7 +24,7 @@ with DAG(
     description="Daily TMDB popular/trending extract followed by dbt run and tests.",
     default_args=default_args,
     start_date=datetime(2026, 7, 1, tzinfo=LOCAL_TZ),
-    schedule="0 6 * * *",
+    schedule="0 23 * * *",
     catchup=False,
     tags=["tmdb", "daily", "snowflake", "dbt"],
 ) as dag:
