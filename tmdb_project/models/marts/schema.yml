@@ -25,39 +25,139 @@ models:
           - not_null
           - unique
 
+  - name: dim_directors
+    description: One row per director found in movie credits.
+    columns:
+      - name: person_id
+        data_tests:
+          - not_null
+          - unique
+
+  - name: dim_companies
+    description: One row per production company.
+    columns:
+      - name: company_id
+        data_tests:
+          - not_null
+          - unique
+
   - name: bridge_movie_genres
     description: Many-to-many bridge between movies and genres.
+    data_tests:
+      - unique:
+          column_name: "movie_id || '|' || genre_id"
     columns:
       - name: movie_id
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_movies')
+                field: movie_id
       - name: genre_id
         data_tests:
           - not_null
 
   - name: bridge_movie_cast
     description: Many-to-many bridge between movies and cast members.
+    data_tests:
+      - unique:
+          column_name: "movie_id || '|' || person_id || '|' || credit_id"
     columns:
       - name: movie_id
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_movies')
+                field: movie_id
       - name: person_id
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_people')
+                field: person_id
       - name: credit_id
         data_tests:
           - not_null
 
+  - name: bridge_movie_directors
+    description: Many-to-many bridge between movies and directors.
+    data_tests:
+      - unique:
+          column_name: "movie_id || '|' || person_id"
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_movies')
+                field: movie_id
+      - name: person_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_directors')
+                field: person_id
+
+  - name: bridge_movie_companies
+    description: Many-to-many bridge between movies and production companies.
+    data_tests:
+      - unique:
+          column_name: "movie_id || '|' || company_id"
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_movies')
+                field: movie_id
+      - name: company_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_companies')
+                field: company_id
+
   - name: fact_movie_performance
-    description: One row per movie with performance metrics such as revenue, ROI, rating, and popularity.
+    description: >
+      One row per movie with its latest performance metrics. Budget and revenue below
+      min_reliable_amount are NULL, as are the metrics derived from them.
     columns:
       - name: movie_id
         data_tests:
           - not_null
           - unique
+          - relationships:
+              arguments:
+                to: ref('dim_movies')
+                field: movie_id
+      - name: roi
+        description: (revenue - budget) / budget.
+      - name: revenue_multiple
+        description: revenue / budget.
+      - name: budget_tier
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Under $20M', '$20M-$50M', '$50M-$100M', '$100M+']
+      - name: is_hit
+        description: Revenue is at least hit_revenue_multiple times the budget. NULL when financials are unreliable.
+      - name: is_analysis_ready
+        description: Released, inside the analysis years, and with reliable financials.
+        data_tests:
+          - not_null
 
   - name: fact_movie_popular_snapshot
-    description: Movie ranking snapshots from the TMDB popular endpoint.
+    description: Movie ranking snapshots from the TMDB popular endpoint, one row per movie per day.
+    data_tests:
+      - unique:
+          column_name: "movie_id || '|' || business_date"
     columns:
       - name: movie_id
         data_tests:
@@ -71,6 +171,9 @@ models:
 
   - name: fact_movie_trending_snapshot
     description: Movie ranking snapshots from the TMDB trending day/week endpoints.
+    data_tests:
+      - unique:
+          column_name: "movie_id || '|' || business_date || '|' || time_window"
     columns:
       - name: movie_id
         data_tests:
@@ -81,6 +184,9 @@ models:
       - name: time_window
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['day', 'week']
       - name: trending_rank
         data_tests:
           - not_null

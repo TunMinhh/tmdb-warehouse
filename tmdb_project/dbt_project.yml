@@ -37,3 +37,10 @@ models:
       +materialized: table
     example:
       +materialized: view
+
+# Analysis rules shared by the marts, the analyses and the Power BI report.
+vars:
+  min_reliable_amount: 10000    # USD; smaller budget/revenue values are treated as unknown
+  hit_revenue_multiple: 2.5     # revenue >= 2.5x budget counts as a hit
+  analysis_start_year: 2010     # the backfill samples ~100 movies per year from here...
+  analysis_end_year: 2025       # ...to here

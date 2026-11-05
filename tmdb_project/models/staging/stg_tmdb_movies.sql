@@ -25,12 +25,6 @@ select
     response_json:revenue::number as revenue,
     response_json:runtime::number as runtime,
 
-    case
-        when response_json:budget::number > 0
-            then response_json:revenue::float / response_json:budget::float
-        else null
-    end as roi,
-
     response_json:status::string as status,
     response_json:original_language::string as original_language,
     
