@@ -99,8 +99,12 @@ The mart layer is a **movie-centric dimensional model** with **bridge tables** f
 | `dim_movies` | dimension | one row per movie |
 | `dim_genres` | dimension | one row per genre |
 | `dim_people` | dimension | one row per actor |
+| `dim_directors` | dimension | one row per director |
+| `dim_companies` | dimension | one row per production company |
 | `bridge_movie_genres` | bridge | one row per movie × genre |
 | `bridge_movie_cast` | bridge | one row per movie × person × credit |
+| `bridge_movie_directors` | bridge | one row per movie × director |
+| `bridge_movie_companies` | bridge | one row per movie × production company |
 | `fact_movie_performance` | fact | one row per movie (latest popularity, votes, budget, revenue, ROI) |
 | `fact_movie_popular_snapshot` | fact | one row per movie per day in `/movie/popular` |
 | `fact_movie_trending_snapshot` | fact | one row per movie per day per time window (`day` / `week`) |
@@ -172,5 +176,6 @@ Then, in the Airflow UI:
 - The dataset is a TMDB sample, not a complete record of the global movie industry.
 - TMDB popularity is a platform-specific metric.
 - Historical discover backfills sorted by popularity use *current* TMDB popularity, not the popularity at release time.
-- Budget and revenue depend on TMDB data quality. TMDB uses `0` for unknown values.
+- Budget and revenue depend on TMDB data quality. Values below $10,000 are treated as unknown, which excludes about 20% of 2010–2025 movies from the financial analysis.
+- The analysis sample is the most popular ~100 movies per release year, so results describe popular films, not all films.
 - `fact_movie_performance` keeps only the latest state of each movie, not its daily history.
