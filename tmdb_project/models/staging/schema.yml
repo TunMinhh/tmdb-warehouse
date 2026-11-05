@@ -71,3 +71,23 @@ models:
       - name: movie_id
         data_tests:
           - not_null
+
+  - name: stg_tmdb_movie_directors
+    description: Directors parsed from the crew array of movie credits responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+
+  - name: stg_tmdb_movie_companies
+    description: Production companies parsed from movie detail responses.
+    columns:
+      - name: movie_id
+        data_tests:
+          - not_null
+      - name: company_id
+        data_tests:
+          - not_null
