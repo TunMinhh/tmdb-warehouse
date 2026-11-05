@@ -148,8 +148,21 @@ models:
                 values: ['Under $20M', '$20M-$50M', '$50M-$100M', '$100M+']
       - name: is_hit
         description: Revenue is at least hit_revenue_multiple times the budget. NULL when financials are unreliable.
+      - name: popularity_rank
+        description: Rank by current TMDB popularity within the release year, from the discover backfill.
+      - name: popularity_band
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Top 50', '51-100', 'Outside sample']
+      - name: rating_band
+        description: Average rating group, NULL for movies with fewer than 100 votes.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Below 6', '6 to 6.9', '7 and above']
       - name: is_analysis_ready
-        description: Released, inside the analysis years, and with reliable financials.
+        description: Released, inside the analysis years, in the top 100 per release year, and with reliable financials.
         data_tests:
           - not_null
 

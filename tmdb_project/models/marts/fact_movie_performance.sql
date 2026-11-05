@@ -9,11 +9,27 @@ with movies as (
 
 ),
 
+-- Where each movie ranked by current popularity within its release year.
+discover_ranks as (
+
+    select
+        movie_id,
+        discover_year,
+        overall_rank as popularity_rank
+    from {{ ref('stg_tmdb_discover_movies') }}
+    where sort_by = 'popularity.desc'
+    qualify row_number() over (
+        partition by movie_id, discover_year
+        order by business_date desc, overall_rank
+    ) = 1
+
+),
+
 -- TMDB uses 0 or tiny values for unknown financials, so treat them as missing.
 cleaned as (
 
     select
-        movie_id,
+        movies.movie_id,
         release_date,
         release_year,
         month(release_date) as release_month,
@@ -27,9 +43,13 @@ cleaned as (
         case when budget >= {{ var('min_reliable_amount') }} then budget end as budget,
         case when revenue >= {{ var('min_reliable_amount') }} then revenue end as revenue,
 
-        extracted_at
+        movies.extracted_at,
+        discover_ranks.popularity_rank
 
     from movies
+    left join discover_ranks
+        on movies.movie_id = discover_ranks.movie_id
+        and movies.release_year = discover_ranks.discover_year
 
 ),
 
@@ -78,6 +98,34 @@ select
 
     revenue_multiple >= {{ var('hit_revenue_multiple') }} as is_hit,
 
+    popularity_rank,
+
+    case
+        when popularity_rank <= {{ var('analysis_max_rank') }} / 2 then 'Top 50'
+        when popularity_rank <= {{ var('analysis_max_rank') }} then '51-100'
+        else 'Outside sample'
+    end as popularity_band,
+
+    case
+        when popularity_rank <= {{ var('analysis_max_rank') }} / 2 then 1
+        when popularity_rank <= {{ var('analysis_max_rank') }} then 2
+        else 3
+    end as popularity_band_order,
+
+    case
+        when vote_count < 100 then null
+        when vote_average < 6 then 'Below 6'
+        when vote_average < 7 then '6 to 6.9'
+        else '7 and above'
+    end as rating_band,
+
+    case
+        when vote_count < 100 then null
+        when vote_average < 6 then 1
+        when vote_average < 7 then 2
+        else 3
+    end as rating_band_order,
+
     case
         when vote_count >= 100 then true
         else false
@@ -88,7 +136,8 @@ select
     coalesce(
         status = 'Released'
         and release_year between {{ var('analysis_start_year') }} and {{ var('analysis_end_year') }}
-        and has_reliable_financials,
+        and has_reliable_financials
+        and popularity_rank <= {{ var('analysis_max_rank') }},
         false
     ) as is_analysis_ready,
 
