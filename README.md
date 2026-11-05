@@ -6,8 +6,10 @@
 [Architecture](#architecture) •
 [Pipeline](#pipeline) •
 [Data Model](#data-model) •
+[Dashboard](#dashboard) •
+[Insights](docs/INSIGHTS.md) •
 [Quick Start](#quick-start) •
-[Roadmap](#limitations--roadmap)
+[Limitations](#limitations)
 
 </div>
 
@@ -30,7 +32,7 @@ Python jobs extract movie data from the [TMDB API](https://developer.themoviedb.
 - **ELT with a raw JSON layer.** API payloads are stored as Snowflake `VARIANT`, so every model can be rebuilt from raw at any time.
 - **Idempotent reloads.** Raw is append-only, and dbt deduplicates in staging and in the marts, so re-running a job does not create duplicates.
 - **Daily snapshots and historical backfills.** Popular and trending rankings are captured every day. The discover backfill loads movies by release year.
-- **Tested models.** dbt `not_null` and `unique` tests run after every build.
+- **Tested models.** dbt tests on keys, relationships, accepted values and table grain run after every build.
 
 ## Architecture
 
@@ -44,7 +46,7 @@ Python jobs extract movie data from the [TMDB API](https://developer.themoviedb.
 | Transformation & tests | dbt Core + `dbt-snowflake` |
 | Orchestration | Apache Airflow 2.10 (LocalExecutor, PostgreSQL metadata DB) |
 | Runtime | Docker Compose |
-| Consumption | Power BI / Tableau / SQL |
+| Consumption | Power BI, SQL |
 
 ## Pipeline
 
@@ -78,7 +80,7 @@ TMDB_DWH.RAW.RAW_TMDB_API_RESPONSES
 |---|---|---|
 | Staging | views | `stg_tmdb_api_responses` keeps the latest response per endpoint, business date and params. Endpoint-specific models flatten the JSON with `lateral flatten` |
 | Marts | tables | Dimensions, bridge tables and facts (see [Data Model](#data-model)) |
-| Tests | — | `not_null` / `unique` on keys |
+| Tests | — | Keys, relationships, accepted values and table grain |
 
 ### 3 · Orchestrate (Airflow)
 
@@ -109,7 +111,32 @@ The mart layer is a **movie-centric dimensional model** with **bridge tables** f
 | `fact_movie_popular_snapshot` | fact | one row per movie per day in `/movie/popular` |
 | `fact_movie_trending_snapshot` | fact | one row per movie per day per time window (`day` / `week`) |
 
-> Keys are logical: Snowflake does not enforce primary or foreign keys, so dbt tests check them instead. The ERD source is [`docs/erd.dbml`](docs/erd.dbml); open it in [dbdiagram.io](https://dbdiagram.io/d) to edit it.
+> Keys are logical: Snowflake does not enforce primary or foreign keys, so dbt tests check them instead.
+
+## Dashboard
+
+A 3-page Power BI report built on the mart layer. It covers 1,274 popular films released 2010–2025, and can be filtered by genre and budget tier.
+
+**Performance overview:** headline KPIs, median ROI by genre, hit rate by budget tier and the highest-revenue films.
+
+![Performance overview dashboard](docs/images/performance_overview_dashboard.png)
+
+**Timing and ratings:** hit rate by release month and by audience rating.
+
+![Timing and ratings dashboard](docs/images/timing_rating_dashboard.png)
+
+**Cast and directors:** the top 10 lead actors and directors by median revenue, with at least 5 films.
+
+![Cast and directors dashboard](docs/images/cast_director_dashboard.png)
+
+### Key insights
+
+- **Budget:** films under \$20M have the highest median ROI (328%) and hit rate (63.8%), but also earn below budget most often (20.0%, versus 11.0% at \$100M+).
+- **Timing:** December has the best hit rate (67.8%) and August the worst (48.5%).
+- **Ratings:** films rated 7 and above hit far more often than films rated below 6 (68.2% vs. 43.0%), but ratings only weakly track revenue.
+- **Genre:** Horror has the highest median ROI (260%) and is the best-supported low-budget genre, though it does not lead in every popularity band.
+
+These results describe popular films, not the whole market. Details and limitations are in [docs/INSIGHTS.md](docs/INSIGHTS.md).
 
 ## Quick Start
 
@@ -176,6 +203,6 @@ Then, in the Airflow UI:
 - The dataset is a TMDB sample, not a complete record of the global movie industry.
 - TMDB popularity is a platform-specific metric.
 - Historical discover backfills sorted by popularity use *current* TMDB popularity, not the popularity at release time.
-- Budget and revenue depend on TMDB data quality. Values below $10,000 are treated as unknown, which excludes about 20% of 2010–2025 movies from the financial analysis.
-- The analysis sample is the most popular ~100 movies per release year, so results describe popular films, not all films.
+- Budget and revenue depend on TMDB data quality. Values below \$10,000 are treated as unknown, which excludes about 20% of 2010–2025 movies from the financial analysis.
+- The analysis sample is the top 100 movies per release year by current popularity, so results describe popular films, not all films.
 - `fact_movie_performance` keeps only the latest state of each movie, not its daily history.
